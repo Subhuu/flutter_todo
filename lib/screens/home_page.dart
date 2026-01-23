@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/todo.dart';
 import '../services/todo_service.dart';
 import '../widgets/glass_container.dart';
+import 'analytics_page.dart';
 
 class TodoHomePage extends StatefulWidget {
   const TodoHomePage({super.key});
@@ -52,7 +53,30 @@ class _TodoHomePageState extends State<TodoHomePage> {
 
   void _toggleTodo(int index) {
     setState(() {
-      _todos[index].isDone = !_todos[index].isDone;
+      final todo = _todos[index];
+      final isNowDone = !todo.isDone;
+      todo.isDone = isNowDone;
+
+      if (isNowDone) {
+        todo.completedAt = DateTime.now();
+
+        // Handle Repetition
+        if (todo.repeat != 'none') {
+          // Create the next task instance
+          final newTodo = Todo(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            title: todo.title,
+            isDone: false,
+            repeat: todo.repeat,
+          );
+          // Add it to the list (after a slight delay or immediately)
+          // If we add immediately, it might be confusing if lists are sorted.
+          // For now, simpler is better: just add it to the top.
+          _todos.insert(0, newTodo);
+        }
+      } else {
+        todo.completedAt = null;
+      }
     });
     _saveTodos();
   }
@@ -68,48 +92,92 @@ class _TodoHomePageState extends State<TodoHomePage> {
     final TextEditingController editController = TextEditingController(
       text: _todos[index].title,
     );
+    String currentRepeat = _todos[index].repeat;
+
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          title: const Text('Edit Task', style: TextStyle(color: Colors.white)),
-          content: TextField(
-            controller: editController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              hintText: "Edit your task",
-              hintStyle: TextStyle(color: Colors.white54),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white54),
+        return StatefulBuilder(
+          // Needed to update dropdown state inside dialog
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: const Text(
+                'Edit Task',
+                style: TextStyle(color: Colors.white),
               ),
-            ),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.white70),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: editController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      hintText: "Edit your task",
+                      hintStyle: TextStyle(color: Colors.white54),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white54),
+                      ),
+                    ),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField<String>(
+                    value: currentRepeat,
+                    dropdownColor: Colors.grey[800],
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Repeat',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white54),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.cyanAccent),
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'none', child: Text('No Repeat')),
+                      DropdownMenuItem(value: 'daily', child: Text('Daily')),
+                      DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() {
+                          currentRepeat = value;
+                        });
+                      }
+                    },
+                  ),
+                ],
               ),
-            ),
-            TextButton(
-              onPressed: () {
-                if (editController.text.trim().isNotEmpty) {
-                  setState(() {
-                    _todos[index].title = editController.text.trim();
-                  });
-                  _saveTodos();
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text(
-                'Save',
-                style: TextStyle(color: Colors.cyanAccent),
-              ),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (editController.text.trim().isNotEmpty) {
+                      setState(() {
+                        _todos[index].title = editController.text.trim();
+                        _todos[index].repeat = currentRepeat;
+                      });
+                      _saveTodos();
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(color: Colors.cyanAccent),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -214,18 +282,33 @@ class _TodoHomePageState extends State<TodoHomePage> {
                 ),
               ],
             ),
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  width: 2,
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.bar_chart, color: Colors.white),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AnalyticsPage(todos: _todos),
+                      ),
+                    );
+                  },
                 ),
-              ),
-              child: const CircleAvatar(
-                backgroundColor: Colors.transparent,
-                child: Icon(Icons.person, color: Colors.white),
-              ),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      width: 2,
+                    ),
+                  ),
+                  child: const CircleAvatar(
+                    backgroundColor: Colors.transparent,
+                    child: Icon(Icons.person, color: Colors.white),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -288,14 +371,27 @@ class _TodoHomePageState extends State<TodoHomePage> {
                   : null,
             ),
           ),
-          title: Text(
-            todo.title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              decoration: todo.isDone ? TextDecoration.lineThrough : null,
-              decorationColor: Colors.white,
-            ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                todo.title,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  decoration: todo.isDone ? TextDecoration.lineThrough : null,
+                  decorationColor: Colors.white,
+                ),
+              ),
+              if (todo.repeat != 'none')
+                Text(
+                  "Repeats: ${todo.repeat}",
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 12,
+                  ),
+                ),
+            ],
           ),
           trailing: IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.white70),
