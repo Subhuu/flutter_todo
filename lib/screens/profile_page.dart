@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
 import '../services/user_service.dart';
+import '../services/todo_service.dart';
 import '../widgets/glass_container.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -12,7 +13,12 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final UserService _userService = UserService();
+  final TodoService _todoService = TodoService();
+
   UserProfile? _user;
+  int _totalTasks = 0;
+  int _completedTasks = 0;
+
   bool _isEditing = false;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
@@ -20,21 +26,27 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _loadUser();
+    _loadData();
   }
 
-  Future<void> _loadUser() async {
+  Future<void> _loadData() async {
     final user = await _userService.loadUser();
-    setState(() {
-      _user = user;
-      if (user == null) {
-        // If no user, prompt editing immediately
-        _isEditing = true;
-      } else {
-        _nameController.text = user.name;
-        _ageController.text = user.age.toString();
-      }
-    });
+    final todos = await _todoService.loadTodos();
+
+    if (mounted) {
+      setState(() {
+        _user = user;
+        _totalTasks = todos.length;
+        _completedTasks = todos.where((t) => t.isDone).length;
+
+        if (user == null) {
+          _isEditing = true;
+        } else {
+          _nameController.text = user.name;
+          _ageController.text = user.age.toString();
+        }
+      });
+    }
   }
 
   void _saveProfile() {
@@ -51,7 +63,11 @@ class _ProfilePageState extends State<ProfilePage> {
     final now = DateTime.now();
 
     // Check constraint: Can only edit once a month if not first time
-    if (_user != null) {
+    if (_user != null && !_isEditing) {
+      // Only enforce strict month rule if we aren't just toggling mode
+      // But user logic says "can update profile again in X days"
+      // We keep logic simple: Check constraint before allowing Save action? or on Save?
+      // Let's stick to existing logic:
       final lastUpdate = _user!.lastUpdated;
       final difference = now.difference(lastUpdate).inDays;
       if (difference < 30) {
@@ -71,7 +87,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     final newUser = UserProfile(name: name, age: age, lastUpdated: now);
-
     _userService.saveUser(newUser);
 
     setState(() {
@@ -82,38 +97,106 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final secondaryTextColor = isDark ? Colors.white70 : Colors.black54;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Profile", style: TextStyle(color: Colors.white)),
+        title: Text("Profile", style: TextStyle(color: textColor)),
         backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: textColor),
+        elevation: 0,
       ),
       body: Stack(
         children: [
-          _buildBackground(),
+          _buildBackground(isDark),
           SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              child: Center(
-                child: GlassContainer(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.cyanAccent,
-                        child: Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.black,
+              child: Column(
+                children: [
+                  Center(
+                    child: GlassContainer(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Avatar
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.cyanAccent,
+                                width: 3,
+                              ),
+                            ),
+                            child: const CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.cyanAccent,
+                              child: Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          if (_isEditing)
+                            _buildEditForm(textColor)
+                          else
+                            _buildDisplay(textColor, secondaryTextColor),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  if (_user != null && !_isEditing)
+                    GlassContainer(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatItem(
+                              "Total Tasks",
+                              "$_totalTasks",
+                              textColor,
+                              secondaryTextColor,
+                            ),
+                            Container(
+                              width: 1,
+                              height: 40,
+                              color: secondaryTextColor,
+                            ),
+                            _buildStatItem(
+                              "Completed",
+                              "$_completedTasks",
+                              textColor,
+                              secondaryTextColor,
+                            ),
+                            Container(
+                              width: 1,
+                              height: 40,
+                              color: secondaryTextColor,
+                            ),
+                            _buildStatItem(
+                              "Rate",
+                              _totalTasks == 0
+                                  ? "0%"
+                                  : "${((_completedTasks / _totalTasks) * 100).toInt()}%",
+                              textColor,
+                              secondaryTextColor,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      if (_isEditing) _buildEditForm() else _buildDisplay(),
-                    ],
-                  ),
-                ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -122,41 +205,67 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildDisplay() {
+  Widget _buildStatItem(
+    String label,
+    String value,
+    Color textColor,
+    Color subColor,
+  ) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 12, color: subColor)),
+      ],
+    );
+  }
+
+  Widget _buildDisplay(Color textColor, Color subColor) {
     if (_user == null) return const SizedBox();
     return Column(
       children: [
         Text(
           _user!.name,
-          style: const TextStyle(
-            fontSize: 24,
+          style: TextStyle(
+            fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: textColor,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 5),
         Text(
-          "Age: ${_user!.age}",
-          style: const TextStyle(fontSize: 18, color: Colors.white70),
+          "Level 1 Member • ${_user!.age} years old",
+          style: TextStyle(fontSize: 14, color: subColor),
         ),
         const SizedBox(height: 20),
-        ElevatedButton(
+
+        ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.cyanAccent,
             foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
           ),
           onPressed: () {
             setState(() {
               _isEditing = true;
             });
           },
-          child: const Text("Edit Profile"),
+          icon: const Icon(Icons.edit, size: 18),
+          label: const Text("Edit Profile"),
         ),
-        const SizedBox(height: 10),
+
+        const SizedBox(height: 15),
         Text(
-          "Last Updated: ${_user!.lastUpdated.toString().split(' ')[0]}",
+          "Member Since: ${_user!.lastUpdated.toString().split(' ')[0]}",
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: subColor.withValues(alpha: 0.5),
             fontSize: 12,
           ),
         ),
@@ -164,30 +273,36 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildEditForm() {
+  Widget _buildEditForm(Color textColor) {
     return Column(
       children: [
         TextField(
           controller: _nameController,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          style: TextStyle(color: textColor),
+          decoration: InputDecoration(
             labelText: "Name",
-            labelStyle: TextStyle(color: Colors.white70),
+            labelStyle: TextStyle(color: textColor.withValues(alpha: 0.7)),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white54),
+              borderSide: BorderSide(color: textColor.withValues(alpha: 0.5)),
+            ),
+            focusedBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.cyanAccent),
             ),
           ),
         ),
         const SizedBox(height: 10),
         TextField(
           controller: _ageController,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: textColor),
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: "Age",
-            labelStyle: TextStyle(color: Colors.white70),
+            labelStyle: TextStyle(color: textColor.withValues(alpha: 0.7)),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white54),
+              borderSide: BorderSide(color: textColor.withValues(alpha: 0.5)),
+            ),
+            focusedBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.cyanAccent),
             ),
           ),
         ),
@@ -204,9 +319,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     _ageController.text = _user!.age.toString();
                   });
                 },
-                child: const Text(
+                child: Text(
                   "Cancel",
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: textColor.withValues(alpha: 0.7)),
                 ),
               ),
             ElevatedButton(
@@ -215,7 +330,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 foregroundColor: Colors.black,
               ),
               onPressed: _saveProfile,
-              child: const Text("Save"),
+              child: const Text("Save Changes"),
             ),
           ],
         ),
@@ -223,13 +338,19 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildBackground() {
+  Widget _buildBackground(bool isDark) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF8EC5FC), Color(0xFFE0C3FC), Color(0xFF80D0C7)],
+          colors: isDark
+              ? [const Color(0xFF1F1C2C), const Color(0xFF928DAB)]
+              : [
+                  const Color(0xFF8EC5FC),
+                  const Color(0xFFE0C3FC),
+                  const Color(0xFF80D0C7),
+                ],
         ),
       ),
     );

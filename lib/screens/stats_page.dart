@@ -9,6 +9,11 @@ class StatsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Theme Awareness
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final secondaryTextColor = isDark ? Colors.white70 : Colors.black54;
+
     // Calculate simple stats
     final total = todos.length;
     final completed = todos.where((t) => t.isDone).length;
@@ -39,121 +44,170 @@ class StatsPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Stats', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text('Stats', style: TextStyle(color: textColor)),
+        iconTheme: IconThemeData(color: textColor),
       ),
       body: Stack(
         children: [
-          _buildBackground(),
+          _buildBackground(isDark),
           SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
                   // Summary Card
                   GlassContainer(
-                    child: Column(
-                      children: [
-                        const Text(
-                          "Task Progress",
-                          style: TextStyle(color: Colors.white, fontSize: 18),
-                        ),
-                        const SizedBox(height: 20),
-                        CircularProgressIndicator(
-                          value: progress,
-                          backgroundColor: Colors.white24,
-                          color: Colors.cyanAccent,
-                          strokeWidth: 10,
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          "$completed / $total Completed",
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Column(
+                            children: [
+                              Text(
+                                "Total",
+                                style: TextStyle(
+                                  color: secondaryTextColor,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                "$total",
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          SizedBox(
+                            height: 80,
+                            width: 80,
+                            child: Stack(
+                              children: [
+                                Center(
+                                  child: CircularProgressIndicator(
+                                    value: progress,
+                                    backgroundColor: isDark
+                                        ? Colors.white24
+                                        : Colors.black12,
+                                    color: Colors.cyanAccent,
+                                    strokeWidth: 8,
+                                  ),
+                                ),
+                                Center(
+                                  child: Text(
+                                    "${(progress * 100).toInt()}%",
+                                    style: TextStyle(
+                                      color: textColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            children: [
+                              Text(
+                                "Done",
+                                style: TextStyle(
+                                  color: secondaryTextColor,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                "$completed",
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
 
                   // Chart
-                  Expanded(
-                    child: GlassContainer(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Last 7 Days",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  GlassContainer(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Activity (Last 7 Days)",
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 20),
-                          Expanded(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: last7Days.map((data) {
-                                final count = data['count'] as int;
-                                final day = data['day'] as DateTime;
-                                final heightFactor = count / chartMax;
+                        ),
+                        const SizedBox(height: 30),
+                        SizedBox(
+                          height: 200,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: last7Days.map((data) {
+                              final count = data['count'] as int;
+                              final day = data['day'] as DateTime;
+                              final heightFactor = count / chartMax;
 
-                                // Weekday letter
-                                final weekday = [
-                                  "M",
-                                  "T",
-                                  "W",
-                                  "T",
-                                  "F",
-                                  "S",
-                                  "S",
-                                ][day.weekday - 1];
+                              // Weekday letter
+                              final weekday = [
+                                "M",
+                                "T",
+                                "W",
+                                "T",
+                                "F",
+                                "S",
+                                "S",
+                              ][day.weekday - 1];
 
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
+                              return Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (count > 0)
                                     Text(
                                       count.toString(),
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 12,
+                                      style: TextStyle(
+                                        color: secondaryTextColor,
+                                        fontSize: 10,
                                       ),
                                     ),
-                                    const SizedBox(height: 5),
-                                    AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 500,
+                                  const SizedBox(height: 5),
+                                  AnimatedContainer(
+                                    duration: const Duration(milliseconds: 500),
+                                    width: 15,
+                                    height:
+                                        heightFactor * 150 + 4, // Min height 4
+                                    decoration: BoxDecoration(
+                                      color: Colors.cyanAccent.withValues(
+                                        alpha: 0.8,
                                       ),
-                                      width: 20,
-                                      height:
-                                          heightFactor * 150 +
-                                          10, // Min height 10
-                                      decoration: BoxDecoration(
-                                        color: Colors.cyanAccent.withValues(
-                                          alpha: 0.8,
-                                        ),
-                                        borderRadius: BorderRadius.circular(5),
-                                      ),
+                                      borderRadius: BorderRadius.circular(5),
                                     ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      weekday,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    weekday,
+                                    style: TextStyle(
+                                      color: textColor,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ],
-                                );
-                              }).toList(),
-                            ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -165,13 +219,19 @@ class StatsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBackground() {
+  Widget _buildBackground(bool isDark) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF8EC5FC), Color(0xFFE0C3FC), Color(0xFF80D0C7)],
+          colors: isDark
+              ? [const Color(0xFF1F1C2C), const Color(0xFF928DAB)]
+              : [
+                  const Color(0xFF8EC5FC),
+                  const Color(0xFFE0C3FC),
+                  const Color(0xFF80D0C7),
+                ],
         ),
       ),
     );
