@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/todo.dart';
 import '../widgets/glass_container.dart';
 
-class AnalyticsPage extends StatelessWidget {
+class StatsPage extends StatelessWidget {
   final List<Todo> todos;
 
-  const AnalyticsPage({super.key, required this.todos});
+  const StatsPage({super.key, required this.todos});
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +39,7 @@ class AnalyticsPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Analytics', style: TextStyle(color: Colors.white)),
+        title: const Text('Stats', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Stack(

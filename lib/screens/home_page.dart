@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/todo.dart';
 import '../services/todo_service.dart';
 import '../widgets/glass_container.dart';
-import 'analytics_page.dart';
+import 'stats_page.dart';
+import 'profile_page.dart';
 
 class TodoHomePage extends StatefulWidget {
   const TodoHomePage({super.key});
@@ -16,6 +17,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
   final TextEditingController _controller = TextEditingController();
   List<Todo> _todos = [];
   bool _isLoading = true;
+  String _newRepeat = 'none'; // State for new task repeat
 
   @override
   void initState() {
@@ -44,9 +46,11 @@ class _TodoHomePageState extends State<TodoHomePage> {
         Todo(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           title: _controller.text.trim(),
+          repeat: _newRepeat,
         ),
       );
       _controller.clear();
+      _newRepeat = 'none'; // Reset logic
     });
     _saveTodos();
   }
@@ -140,10 +144,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
                         style: const TextStyle(color: Colors.white),
                         isExpanded: true,
                         items: const [
-                          DropdownMenuItem(
-                            value: 'none',
-                            child: Text('No Repeat'),
-                          ),
+                          DropdownMenuItem(value: 'none', child: Text('Once')),
                           DropdownMenuItem(
                             value: 'daily',
                             child: Text('Daily'),
@@ -151,6 +152,10 @@ class _TodoHomePageState extends State<TodoHomePage> {
                           DropdownMenuItem(
                             value: 'weekly',
                             child: Text('Weekly'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'monthly',
+                            child: Text('Monthly'),
                           ),
                         ],
                         onChanged: (value) {
@@ -304,22 +309,30 @@ class _TodoHomePageState extends State<TodoHomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => AnalyticsPage(todos: _todos),
+                        builder: (_) => StatsPage(todos: _todos),
                       ),
                     );
                   },
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      width: 2,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfilePage()),
+                    );
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        width: 2,
+                      ),
                     ),
-                  ),
-                  child: const CircleAvatar(
-                    backgroundColor: Colors.transparent,
-                    child: Icon(Icons.person, color: Colors.white),
+                    child: const CircleAvatar(
+                      backgroundColor: Colors.transparent,
+                      child: Icon(Icons.person, color: Colors.white),
+                    ),
                   ),
                 ),
               ],
@@ -420,22 +433,80 @@ class _TodoHomePageState extends State<TodoHomePage> {
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: GlassContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 5,
+        ), // Reduced vertical padding
         child: Row(
           children: [
             Expanded(
-              child: TextField(
-                controller: _controller,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: "Add a new task...",
-                  hintStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _controller,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: "Add a new task...",
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                      ),
+                      border: InputBorder.none,
+                      isDense: true, // Make it compact
+                    ),
+                    onSubmitted: (_) => _addTodo(),
                   ),
-                  border: InputBorder.none,
-                ),
-                onSubmitted: (_) => _addTodo(),
+                  // Small Repeat Selector
+                  if (_newRepeat != 'none')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        "Repeats: $_newRepeat",
+                        style: TextStyle(
+                          color: Colors.cyanAccent,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                ],
               ),
+            ),
+            // Repeat Icon Button
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.repeat,
+                color: _newRepeat == 'none'
+                    ? Colors.white54
+                    : Colors.cyanAccent,
+              ),
+              color: Colors.grey[900],
+              onSelected: (value) {
+                setState(() {
+                  _newRepeat = value;
+                });
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'none',
+                  child: Text(
+                    'No Repeat',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'daily',
+                  child: Text('Daily', style: TextStyle(color: Colors.white)),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'weekly',
+                  child: Text('Weekly', style: TextStyle(color: Colors.white)),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'monthly',
+                  child: Text('Monthly', style: TextStyle(color: Colors.white)),
+                ),
+              ],
             ),
             IconButton(
               onPressed: _addTodo,
