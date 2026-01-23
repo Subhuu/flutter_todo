@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/todo.dart';
 import '../services/todo_service.dart';
 import '../widgets/glass_container.dart';
+import 'package:ntp/ntp.dart';
+import 'package:provider/provider.dart';
+import '../services/theme_provider.dart';
+import '../services/user_service.dart';
 import 'stats_page.dart';
 import 'profile_page.dart';
 
@@ -14,15 +18,33 @@ class TodoHomePage extends StatefulWidget {
 
 class _TodoHomePageState extends State<TodoHomePage> {
   final TodoService _todoService = TodoService();
+  final UserService _userService = UserService();
   final TextEditingController _controller = TextEditingController();
   List<Todo> _todos = [];
+  String _userName = 'User';
   bool _isLoading = true;
   String _newRepeat = 'none'; // State for new task repeat
 
   @override
   void initState() {
     super.initState();
-    _loadTodos();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([_loadTodos(), _loadUser()]);
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _loadUser() async {
+    final user = await _userService.loadUser();
+    if (user != null && mounted) {
+      setState(() {
+        _userName = user.name;
+      });
+    }
   }
 
   Future<void> _loadTodos() async {
@@ -30,7 +52,6 @@ class _TodoHomePageState extends State<TodoHomePage> {
     if (mounted) {
       setState(() {
         _todos = todos;
-        _isLoading = false;
       });
     }
   }
@@ -55,7 +76,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
     _saveTodos();
   }
 
-  void _toggleTodo(int index) {
+  void _toggleTodo(int index) async {
     setState(() {
       final todo = _todos[index];
       final isNowDone = !todo.isDone;
@@ -63,26 +84,39 @@ class _TodoHomePageState extends State<TodoHomePage> {
 
       if (isNowDone) {
         todo.completedAt = DateTime.now();
-
-        // Handle Repetition
-        if (todo.repeat != 'none') {
-          // Create the next task instance
-          final newTodo = Todo(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            title: todo.title,
-            isDone: false,
-            repeat: todo.repeat,
-          );
-          // Add it to the list (after a slight delay or immediately)
-          // If we add immediately, it might be confusing if lists are sorted.
-          // For now, simpler is better: just add it to the top.
-          _todos.insert(0, newTodo);
-        }
       } else {
         todo.completedAt = null;
       }
     });
-    _saveTodos();
+
+    // Determine repetition logic (async part outside setState)
+    // We need to re-fetch the todo because setState might have updated it,
+    // but here we have the reference.
+    final todo = _todos[index];
+    if (todo.isDone && todo.repeat != 'none') {
+      DateTime now;
+      try {
+        // NTP might fail if offline
+        now = await NTP.now();
+      } catch (_) {
+        now = DateTime.now();
+      }
+
+      if (mounted) {
+        setState(() {
+          final newTodo = Todo(
+            id: now.millisecondsSinceEpoch.toString(),
+            title: todo.title,
+            isDone: false,
+            repeat: todo.repeat,
+          );
+          _todos.insert(0, newTodo);
+        });
+        await _saveTodos();
+      }
+    } else {
+      await _saveTodos();
+    }
   }
 
   void _deleteTodo(int index) {
@@ -284,7 +318,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Hello, User",
+                  "Hello, $_userName",
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
