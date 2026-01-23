@@ -133,8 +133,8 @@ class AnalyticsPage extends StatelessWidget {
                                           heightFactor * 150 +
                                           10, // Min height 10
                                       decoration: BoxDecoration(
-                                        color: Colors.cyanAccent.withOpacity(
-                                          0.8,
+                                        color: Colors.cyanAccent.withValues(
+                                          alpha: 0.8,
                                         ),
                                         borderRadius: BorderRadius.circular(5),
                                       ),

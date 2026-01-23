@@ -122,10 +122,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
                     autofocus: true,
                   ),
                   const SizedBox(height: 20),
-                  DropdownButtonFormField<String>(
-                    value: currentRepeat,
-                    dropdownColor: Colors.grey[800],
-                    style: const TextStyle(color: Colors.white),
+                  InputDecorator(
                     decoration: const InputDecoration(
                       labelText: 'Repeat',
                       labelStyle: TextStyle(color: Colors.white70),
@@ -136,18 +133,35 @@ class _TodoHomePageState extends State<TodoHomePage> {
                         borderSide: BorderSide(color: Colors.cyanAccent),
                       ),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'none', child: Text('No Repeat')),
-                      DropdownMenuItem(value: 'daily', child: Text('Daily')),
-                      DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() {
-                          currentRepeat = value;
-                        });
-                      }
-                    },
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: currentRepeat,
+                        dropdownColor: Colors.grey[800],
+                        style: const TextStyle(color: Colors.white),
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'none',
+                            child: Text('No Repeat'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'daily',
+                            child: Text('Daily'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'weekly',
+                            child: Text('Weekly'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setDialogState(() {
+                              currentRepeat = value;
+                            });
+                          }
+                        },
+                      ),
+                    ),
                   ),
                 ],
               ),
