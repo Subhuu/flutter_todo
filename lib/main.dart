@@ -95,17 +95,17 @@ class _TodoHomePageState extends State<TodoHomePage> {
           Positioned(
             top: -50,
             left: -50,
-            child: _buildBlob(200, Colors.purpleAccent.withOpacity(0.4)),
+            child: _buildBlob(200, Colors.purpleAccent.withValues(alpha: 0.4)),
           ),
           Positioned(
             bottom: 100,
             right: -60,
-            child: _buildBlob(250, Colors.blueAccent.withOpacity(0.4)),
+            child: _buildBlob(250, Colors.blueAccent.withValues(alpha: 0.4)),
           ),
           Positioned(
             top: 200,
             right: 50,
-            child: _buildBlob(150, Colors.pinkAccent.withOpacity(0.3)),
+            child: _buildBlob(150, Colors.pinkAccent.withValues(alpha: 0.3)),
           ),
 
           // 3. Content with Glassmorphism
@@ -119,7 +119,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
                           child: Text(
                             "No tasks yet!",
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
                             ),
@@ -155,7 +155,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
         color: color,
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.5),
+            color: color.withValues(alpha: 0.5),
             blurRadius: 40,
             spreadRadius: 10,
           ),
@@ -188,7 +188,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
                   "You have ${_todos.where((t) => !t.isDone).length} tasks to do",
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -197,7 +197,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   width: 2,
                 ),
               ),
@@ -269,7 +269,9 @@ class _TodoHomePageState extends State<TodoHomePage> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: "Add a new task...",
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
                   border: InputBorder.none,
                 ),
                 onSubmitted: (_) => _addTodo(),
@@ -309,15 +311,15 @@ class GlassContainer extends StatelessWidget {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(opacity),
+            color: Colors.white.withValues(alpha: opacity),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 10,
                 spreadRadius: 1,
               ),
