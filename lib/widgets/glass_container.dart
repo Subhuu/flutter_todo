@@ -23,8 +23,6 @@ class GlassContainer extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Adaptive colors
-    final baseColor = isDark ? Colors.white : Colors.black;
-    final borderColor = isDark ? Colors.white : Colors.black;
     final shadowColor = isDark ? Colors.black : Colors.grey;
 
     // Adjust defaults if not manually overridden (somewhat)

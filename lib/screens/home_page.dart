@@ -317,7 +317,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Hello, $_userName",
                   style: TextStyle(
                     fontSize: 24,
@@ -368,6 +368,20 @@ class _TodoHomePageState extends State<TodoHomePage> {
                       child: Icon(Icons.person, color: Colors.white),
                     ),
                   ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Provider.of<ThemeProvider>(context).isDarkMode
+                        ? Icons.light_mode
+                        : Icons.dark_mode,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {
+                    Provider.of<ThemeProvider>(
+                      context,
+                      listen: false,
+                    ).toggleTheme();
+                  },
                 ),
               ],
             ),
