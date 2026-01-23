@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const GlassTodoApp());
 }
 
@@ -19,7 +22,7 @@ class GlassTodoApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
-        fontFamily: 'Roboto', // Default, but good to be explicit
+        fontFamily: 'Roboto',
       ),
       home: const TodoHomePage(),
     );
@@ -32,6 +35,15 @@ class Todo {
   bool isDone;
 
   Todo({required this.id, required this.title, this.isDone = false});
+
+  // Serialization for SharedPreferences
+  factory Todo.fromJson(Map<String, dynamic> json) {
+    return Todo(id: json['id'], title: json['title'], isDone: json['isDone']);
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'title': title, 'isDone': isDone};
+  }
 }
 
 class TodoHomePage extends StatefulWidget {
@@ -42,8 +54,37 @@ class TodoHomePage extends StatefulWidget {
 }
 
 class _TodoHomePageState extends State<TodoHomePage> {
-  final List<Todo> _todos = [];
+  List<Todo> _todos = [];
   final TextEditingController _controller = TextEditingController();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTodos();
+  }
+
+  Future<void> _loadTodos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? todosString = prefs.getString('todos');
+    if (todosString != null) {
+      final List<dynamic> decoded = jsonDecode(todosString);
+      setState(() {
+        _todos = decoded.map((e) => Todo.fromJson(e)).toList();
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveTodos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encoded = jsonEncode(_todos.map((e) => e.toJson()).toList());
+    await prefs.setString('todos', encoded);
+  }
 
   void _addTodo() {
     if (_controller.text.trim().isEmpty) return;
@@ -56,23 +97,76 @@ class _TodoHomePageState extends State<TodoHomePage> {
       );
       _controller.clear();
     });
+    _saveTodos();
   }
 
   void _toggleTodo(int index) {
     setState(() {
       _todos[index].isDone = !_todos[index].isDone;
     });
+    _saveTodos();
   }
 
   void _deleteTodo(int index) {
     setState(() {
       _todos.removeAt(index);
     });
+    _saveTodos();
+  }
+
+  void _editTodo(int index) {
+    final TextEditingController editController = TextEditingController(
+      text: _todos[index].title,
+    );
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text('Edit Task', style: TextStyle(color: Colors.white)),
+          content: TextField(
+            controller: editController,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: "Edit your task",
+              hintStyle: TextStyle(color: Colors.white54),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.white54),
+              ),
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                if (editController.text.trim().isNotEmpty) {
+                  setState(() {
+                    _todos[index].title = editController.text.trim();
+                  });
+                  _saveTodos();
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text(
+                'Save',
+                style: TextStyle(color: Colors.cyanAccent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Abstract, colorful background
     return Scaffold(
       extendBodyBehindAppBar: true,
       body: Stack(
@@ -91,7 +185,8 @@ class _TodoHomePageState extends State<TodoHomePage> {
               ),
             ),
           ),
-          // 2. Blobs / Shapes to enhance glass effect
+
+          // 2. Blobs / Shapes
           Positioned(
             top: -50,
             left: -50,
@@ -108,13 +203,17 @@ class _TodoHomePageState extends State<TodoHomePage> {
             child: _buildBlob(150, Colors.pinkAccent.withValues(alpha: 0.3)),
           ),
 
-          // 3. Content with Glassmorphism
+          // 3. Content
           SafeArea(
             child: Column(
               children: [
                 _buildHeader(),
                 Expanded(
-                  child: _todos.isEmpty
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
+                      : _todos.isEmpty
                       ? Center(
                           child: Text(
                             "No tasks yet!",
@@ -222,6 +321,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
             horizontal: 20,
             vertical: 5,
           ),
+          onTap: () => _editTodo(index), // Added tap to edit
           leading: GestureDetector(
             onTap: () => _toggleTodo(index),
             child: AnimatedContainer(
