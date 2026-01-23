@@ -238,17 +238,34 @@ class _TodoHomePageState extends State<TodoHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Theme Awareness
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Define Styles based on Theme
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final secondaryTextColor = isDark
+        ? Colors.white.withValues(alpha: 0.7)
+        : Colors.black54;
+    final iconColor = isDark ? Colors.white : Colors.black87;
+    final hintColor = isDark ? Colors.white54 : Colors.black45;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          _buildBackgroundAndShapes(),
+          _buildBackgroundAndShapes(isDark),
           SafeArea(
             child: Column(
               children: [
-                _buildHeader(),
-                Expanded(child: _buildTodoList()),
-                _buildInputArea(),
+                _buildHeader(textColor, secondaryTextColor, iconColor),
+                Expanded(
+                  child: _buildTodoList(
+                    textColor,
+                    secondaryTextColor,
+                    iconColor,
+                  ),
+                ),
+                _buildInputArea(textColor, hintColor, iconColor),
               ],
             ),
           ),
@@ -257,15 +274,24 @@ class _TodoHomePageState extends State<TodoHomePage> {
     );
   }
 
-  Widget _buildBackgroundAndShapes() {
+  Widget _buildBackgroundAndShapes(bool isDark) {
     return Stack(
       children: [
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF8EC5FC), Color(0xFFE0C3FC), Color(0xFF80D0C7)],
+              colors: isDark
+                  ? [
+                      const Color(0xFF1F1C2C),
+                      const Color(0xFF928DAB),
+                    ] // Dark Gradient
+                  : [
+                      const Color(0xFF8EC5FC),
+                      const Color(0xFFE0C3FC),
+                      const Color(0xFF80D0C7),
+                    ], // Light Pastel Gradient
             ),
           ),
         ),
@@ -306,7 +332,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(Color titleColor, Color subtitleColor, Color iconColor) {
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: GlassContainer(
@@ -322,23 +348,20 @@ class _TodoHomePageState extends State<TodoHomePage> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: titleColor,
                   ),
                 ),
                 const SizedBox(height: 5),
                 Text(
                   "You have ${_todos.where((t) => !t.isDone).length} tasks to do",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white.withValues(alpha: 0.8),
-                  ),
+                  style: TextStyle(fontSize: 14, color: subtitleColor),
                 ),
               ],
             ),
             Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.bar_chart, color: Colors.white),
+                  icon: Icon(Icons.bar_chart, color: iconColor),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -352,7 +375,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ProfilePage()),
+                      MaterialPageRoute(builder: (_) => ProfilePage()),
                     );
                   },
                   child: Container(
@@ -365,7 +388,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
                     ),
                     child: const CircleAvatar(
                       backgroundColor: Colors.transparent,
-                      child: Icon(Icons.person, color: Colors.white),
+                      child: Icon(Icons.person, color: iconColor),
                     ),
                   ),
                 ),
@@ -374,7 +397,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
                     Provider.of<ThemeProvider>(context).isDarkMode
                         ? Icons.light_mode
                         : Icons.dark_mode,
-                    color: Colors.white,
+                    color: iconColor,
                   ),
                   onPressed: () {
                     Provider.of<ThemeProvider>(
@@ -391,18 +414,16 @@ class _TodoHomePageState extends State<TodoHomePage> {
     );
   }
 
-  Widget _buildTodoList() {
+  Widget _buildTodoList(Color textColor, Color subColor, Color iconColor) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
-      );
+      return Center(child: CircularProgressIndicator(color: iconColor));
     }
     if (_todos.isEmpty) {
       return Center(
         child: Text(
           "No tasks yet!",
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.8),
+            color: subColor,
             fontSize: 18,
             fontWeight: FontWeight.w500,
           ),
@@ -414,12 +435,18 @@ class _TodoHomePageState extends State<TodoHomePage> {
       itemCount: _todos.length,
       itemBuilder: (context, index) {
         final todo = _todos[index];
-        return _buildGlassTodoItem(todo, index);
+        return _buildGlassTodoItem(todo, index, textColor, subColor, iconColor);
       },
     );
   }
 
-  Widget _buildGlassTodoItem(Todo todo, int index) {
+  Widget _buildGlassTodoItem(
+    Todo todo,
+    int index,
+    Color textColor,
+    Color subColor,
+    Color iconColor,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: GlassContainer(
@@ -438,11 +465,17 @@ class _TodoHomePageState extends State<TodoHomePage> {
               height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: todo.isDone ? Colors.white : Colors.transparent,
-                border: Border.all(color: Colors.white, width: 2),
+                color: todo.isDone ? iconColor : Colors.transparent,
+                border: Border.all(color: iconColor, width: 2),
               ),
               child: todo.isDone
-                  ? const Icon(Icons.check, size: 16, color: Colors.purple)
+                  ? Icon(
+                      Icons.check,
+                      size: 16,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.black
+                          : Colors.white,
+                    )
                   : null,
             ),
           ),
@@ -452,24 +485,24 @@ class _TodoHomePageState extends State<TodoHomePage> {
               Text(
                 todo.title,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: textColor,
                   fontSize: 16,
                   decoration: todo.isDone ? TextDecoration.lineThrough : null,
-                  decorationColor: Colors.white,
+                  decorationColor: textColor,
                 ),
               ),
               if (todo.repeat != 'none')
                 Text(
                   "Repeats: ${todo.repeat}",
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: subColor, fontSize: 12),
                 ),
             ],
           ),
           trailing: IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.white70),
+            icon: Icon(
+              Icons.delete_outline,
+              color: iconColor.withValues(alpha: 0.7),
+            ),
             onPressed: () => _deleteTodo(index),
           ),
         ),
@@ -477,7 +510,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
     );
   }
 
-  Widget _buildInputArea() {
+  Widget _buildInputArea(Color textColor, Color hintColor, Color iconColor) {
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: GlassContainer(
@@ -494,12 +527,10 @@ class _TodoHomePageState extends State<TodoHomePage> {
                 children: [
                   TextField(
                     controller: _controller,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: textColor),
                     decoration: InputDecoration(
                       hintText: "Add a new task...",
-                      hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                      ),
+                      hintStyle: TextStyle(color: hintColor),
                       border: InputBorder.none,
                       isDense: true, // Make it compact
                     ),
@@ -525,7 +556,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
               icon: Icon(
                 Icons.repeat,
                 color: _newRepeat == 'none'
-                    ? Colors.white54
+                    ? iconColor.withValues(alpha: 0.5)
                     : Colors.cyanAccent,
               ),
               color: Colors.grey[900],
@@ -558,7 +589,7 @@ class _TodoHomePageState extends State<TodoHomePage> {
             ),
             IconButton(
               onPressed: _addTodo,
-              icon: const Icon(Icons.add_circle, color: Colors.white, size: 30),
+              icon: Icon(Icons.add_circle, color: iconColor, size: 30),
             ),
           ],
         ),
