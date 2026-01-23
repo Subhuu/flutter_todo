@@ -33,8 +33,6 @@
 |:---:|:---:|
 | <img src="https://via.placeholder.com/300x600?text=Home+Screen+Glass+UI" alt="Home Screen" width="250"> | <img src="https://via.placeholder.com/300x600?text=Edit+Task+Dialog" alt="Edit Screen" width="250"> |
 
-> *Note: Replace these placeholders with actual screenshots of your app running on a device to showcase the glass effect.*
-
 ---
 
 ## 🚀 Key Features
@@ -99,7 +97,7 @@ Contributions are what make the open source community such an amazing place to l
 **Subhuu**
 
 *   **GitHub**: [@Subhuu](https://github.com/Subhuu)
-*   **LinkedIn**: [Your LinkedIn Profile](https://linkedin.com/in/yourprofile)
+*   **LinkedIn**: [Your LinkedIn Profile](https://linkedin.com/in/subham-chaurasiya-it)
 
 ---
 
